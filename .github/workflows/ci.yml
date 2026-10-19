@@ -1,0 +1,23 @@
+name: CI
+on:
+  pull_request: {}
+  push:
+    branches:
+      - main
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  csv-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - name: Validate CSV files
+        run: |
+          for f in $(find . -name '*.csv' -type f); do
+            echo "Checking $f"
+            awk -F, '{if (NF != $(head -1 "$f" | awk -F, "{print NF}")) {print "MISMATCH on line " NR ": " NF " != " $(head -1 "$f" | awk -F, "{print NF}"); exit 1}}' "$f"
+          done
