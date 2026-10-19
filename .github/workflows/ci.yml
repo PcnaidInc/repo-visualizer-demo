@@ -19,5 +19,5 @@ jobs:
         run: |
           for f in $(find . -name '*.csv' -type f); do
             echo "Checking $f"
-            awk -F, '{if (NF != $(head -1 "$f" | awk -F, "{print NF}")) {print "MISMATCH on line " NR ": " NF " != " $(head -1 "$f" | awk -F, "{print NF}"); exit 1}}' "$f"
+            awk -F, 'NR == 1 { expected = NF } NF != expected { print "MISMATCH on line " NR ": " NF " != " expected; exit 1 }' "$f"
           done
