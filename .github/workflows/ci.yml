@@ -17,7 +17,23 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
       - name: Validate CSV files
         run: |
-          for f in $(find . -name '*.csv' -type f); do
+          status=0
+          while IFS= read -r -d '' f; do
             echo "Checking $f"
-            awk -F, 'NR == 1 { expected = NF } NF != expected { print "MISMATCH on line " NR ": " NF " != " expected; exit 1 }' "$f"
-          done
+            python3 - "$f" <<'PY' || status=1
+          import csv
+          import sys
+
+          path = sys.argv[1]
+          expected = None
+          with open(path, newline="") as fh:
+              reader = csv.reader(fh)
+              for lineno, row in enumerate(reader, start=1):
+                  if expected is None:
+                      expected = len(row)
+                  elif len(row) != expected:
+                      print(f"MISMATCH on line {lineno}: {len(row)} != {expected}")
+                      sys.exit(1)
+          PY
+          done < <(find . -name '*.csv' -type f -print0)
+          exit "$status"
